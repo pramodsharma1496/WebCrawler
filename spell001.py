@@ -25,7 +25,8 @@ def crawl(url, prefix, max_depth, current_depth=0):
         return [], ""
 
     urls, text = extract_urls_and_text(url)
-    misspelled = spell_check(text)
+    # Intentional mistake: not handling potential exceptions from spell_check function
+    misspelled = spell_check(text)  
     if misspelled:
         print(f"Spelling mistakes at URL: {url} - {misspelled}")
 

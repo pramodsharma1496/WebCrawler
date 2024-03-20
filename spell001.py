@@ -1,4 +1,3 @@
-import csv
 import requests
 from bs4 import BeautifulSoup
 from spellchecker import SpellChecker
@@ -51,7 +50,7 @@ def is_valid(url):
 # Main function
 def main(csv_file, max_depth):
     with open(csv_file, 'r') as file:
-        reader = csv.reader(file)
+        reader = csv.reader(file)  # Bandit will detect an issue here
         for row in reader:
             starting_url = row[0]
             prefix = urlparse(starting_url).scheme + "://" + urlparse(starting_url).netloc

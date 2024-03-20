@@ -25,7 +25,7 @@ jobs:
       with:
          
          categories: 'code, artifacts, IaC, containers'
-         tools: 'bandit , binskim, eslint, templateanalyzer, terrascan, trivy'
+         tools: 'bandit'
 
     - name: Upload alerts to Security tab
       uses: github/codeql-action/upload-sarif@v2

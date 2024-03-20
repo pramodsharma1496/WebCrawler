@@ -28,10 +28,10 @@ jobs:
       id: msdo
       with:
       categories: |
-      code
-      artifacts
-      IaC
-      containers
+        code
+        artifacts
+        IaC
+        containers
     tools: |
       bandit
       binskim

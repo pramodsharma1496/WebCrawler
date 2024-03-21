@@ -1,0 +1,39 @@
+name: MSDO windows-latest
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sample:
+    name: Microsoft Security DevOps Analysis
+
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Run Microsoft Security DevOps Analysis
+      uses: microsoft/security-devops-action@latest
+      id: msdo
+      with:
+         
+         categories: 'code, artifacts, IaC, containers'
+         tools: 'bandit'
+
+    - name: Upload alerts to Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: ${{ steps.msdo.outputs.sarifFile }}
+
+    - name: Upload alerts file as a workflow artifact
+      uses: actions/upload-artifact@v3
+      with:  
+        name: alerts
+        path: ${{ steps.msdo.outputs.sarifFile }}

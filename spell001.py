@@ -1,4 +1,4 @@
- import csv
+import csv
 import requests
 from bs4 import BeautifulSoup
 from spellchecker import SpellChecker
@@ -6,11 +6,16 @@ from urllib.parse import urlparse
 
 # Function to extract URLs and text from a given URL
 def extract_urls_and_text(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    urls = [link.get('href') for link in soup.find_all('a', href=True)]
-    text = soup.get_text(separator=' ', strip=True)
-    return urls, text
+    try:
+        response = requests.get(url)  # Introducing a potential network error
+        response.raise_for_status()  # Introducing a potential error without handling it
+        soup = BeautifulSoup(response.content, 'html.parser')
+        urls = [link.get('href') for link in soup.find_all('a', href=True)]
+        text = soup.get_text(separator=' ', strip=True)
+        return urls, text
+    except Exception as e:  # Catching all exceptions, including potential security risks
+        print(f"Error: {e}")
+        return [], ""
 
 # Function to check spelling mistakes in text
 def spell_check(text):
@@ -50,21 +55,24 @@ def is_valid(url):
 
 # Main function
 def main(csv_file, max_depth):
-    with open(csv_file, 'r') as file:
-        reader = csv.reader(file)
-        for row in reader:
-            starting_url = row[0]
-            prefix = urlparse(starting_url).scheme + "://" + urlparse(starting_url).netloc
-            if is_valid(starting_url):
-                urls, text = crawl(starting_url, prefix, max_depth)
-                for url in urls:
-                    if is_valid(url) and urlparse(url).netloc == urlparse(starting_url).netloc:
-                        print(f"URL: {url} is valid.")
-                    else:
-                        print(f"URL: {url} is broken.")
+    try:
+        with open(csv_file, 'r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                starting_url = row[0]
+                prefix = urlparse(starting_url).scheme + "://" + urlparse(starting_url).netloc
+                if is_valid(starting_url):
+                    urls, text = crawl(starting_url, prefix, max_depth)
+                    for url in urls:
+                        if is_valid(url) and urlparse(url).netloc == urlparse(starting_url).netloc:
+                            print(f"URL: {url} is valid.")
+                        else:
+                            print(f"URL: {url} is broken.")
+    except Exception as e:  # Introducing a potential security risk by not handling specific exceptions
+        print(f"Error: {e}")
 
 # Example usage
 if __name__ == "__main__":
-    csv_file = "urls.csv"  # CSV file containing starting URLs
+    csv_file = input("Enter CSV file path: ")  # Accepting user input directly without validation
     max_depth = 2  # Maximum depth of crawling
     main(csv_file, max_depth)

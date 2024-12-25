@@ -1,66 +1,77 @@
 import csv
 import requests
 from bs4 import BeautifulSoup
-from spellchecker import SpellChecker
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
-# Function to extract URLs and text from a given URL
-def extract_urls_and_text(url):
-    response = requests.get(url)
+# Function to extract URLs from a given URL
+def extract_urls(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error fetching URL {url}: {e}")
+        return []
+
     soup = BeautifulSoup(response.content, 'html.parser')
-    urls = [link.get('href') for link in soup.find_all('a', href=True)]
-    text = soup.get_text(separator=' ', strip=True)
-    return urls, text
+    # Extract absolute URLs
+    return [urljoin(url, link.get('href')) for link in soup.find_all('a', href=True)]
 
-# Function to check spelling mistakes in text
-def spell_check(text):
-    spell = SpellChecker()
-    words = text.split()
-    misspelled = spell.unknown(words)
-    return misspelled
+# Function to crawl URLs recursively
+def crawl(url, max_depth, visited=None, current_depth=0, broken_urls=None):
+    if visited is None:
+        visited = set()
+    if broken_urls is None:
+        broken_urls = []
 
-# Function to crawl and extract URLs and text recursively
-def crawl(url, prefix, max_depth, current_depth=0):
-    if current_depth > max_depth:
-        return [], ""
+    if current_depth > max_depth or url in visited:
+        return broken_urls
 
-    urls, text = extract_urls_and_text(url)
-    misspelled = spell_check(text)
-    if misspelled:
-        print(f"Spelling mistakes at URL: {url} - {misspelled}")
+    visited.add(url)
+    print(f"Processing URL: {url}")  # Log progress
 
-    crawled_urls = {url: {'text': text, 'misspelled': list(misspelled)}}
+    # Extract URLs and validate them
+    child_urls = extract_urls(url)
+    for next_url in child_urls:
+        next_url = next_url.split('#')[0]  # Remove fragments (e.g., #section)
+        if next_url not in visited and next_url.startswith(urlparse(url).scheme + "://" + urlparse(url).netloc):
+            if not is_valid(next_url):
+                print(f"Broken URL detected: {next_url}")  # Log broken URL
+                broken_urls.append(next_url)
+            else:
+                crawl(next_url, max_depth, visited, current_depth + 1, broken_urls)
 
-    for next_url in urls:
-        if next_url.startswith(prefix):
-            nested_urls, nested_text = crawl(next_url, prefix, max_depth, current_depth + 1)
-            urls += nested_urls
-            text += nested_text
-
-    return urls, text
+    return broken_urls
 
 # Function to check if a URL is valid
 def is_valid(url):
     try:
-        response = requests.head(url)
+        # Use requests.get as a fallback for better reliability
+        response = requests.head(url, timeout=5, allow_redirects=True)
+        if response.status_code != 200:
+            response = requests.get(url, timeout=10)
         return response.status_code == 200
-    except requests.ConnectionError:
+    except requests.RequestException:
         return False
 
 # Main function
 def main(csv_file, max_depth):
+    broken_urls = []
+    visited = set()  # Track all visited URLs to avoid duplicates
+
     with open(csv_file, 'r') as file:
         reader = csv.reader(file)
         for row in reader:
             starting_url = row[0]
-            prefix = urlparse(starting_url).scheme + "://" + urlparse(starting_url).netloc
             if is_valid(starting_url):
-                urls, text = crawl(starting_url, prefix, max_depth)
-                for url in urls:
-                    if is_valid(url) and urlparse(url).netloc == urlparse(starting_url).netloc:
-                        print(f"URL: {url} is valid.")
-                    else:
-                        print(f"URL: {url} is broken.")
+                print(f"Starting crawl for: {starting_url}")
+                broken_urls.extend(crawl(starting_url, max_depth, visited))
+            else:
+                print(f"Invalid starting URL: {starting_url}")
+                broken_urls.append(starting_url)
+
+    print("\nBroken URLs List:")
+    for url in set(broken_urls):  # Remove duplicates
+        print(url)
 
 # Example usage
 if __name__ == "__main__":

@@ -22,36 +22,37 @@ def spell_check(text):
     return misspelled
 
 # Function to crawl and extract URLs and text recursively
-def crawl(url, prefix, max_depth, current_depth=0):
-    if current_depth > max_depth:
-        return []
+def crawl(url, prefix, max_depth, visited, current_depth=0):
+    if current_depth > max_depth or url in visited:
+        return
+
+    visited.add(url)  # Mark the URL as visited
 
     try:
         urls, text = extract_urls_and_text(url)
     except Exception as e:
         print(f"Error accessing URL: {url} - {e}")
-        return []
+        return
 
     misspelled = spell_check(text)
     if misspelled:
         print(f"Spelling mistakes at URL: {url} - {misspelled}")
 
-    crawled_urls = {url: {'text': text, 'misspelled': list(misspelled)}}
-
     for next_url in urls:
         # Only follow URLs that start with the same prefix
         if next_url.startswith(prefix):
-            crawl(next_url, prefix, max_depth, current_depth + 1)
+            crawl(next_url, prefix, max_depth, visited, current_depth + 1)
 
 # Main function
 def main(csv_file, max_depth):
+    visited = set()  # Set to track visited URLs
     with open(csv_file, 'r') as file:
         reader = csv.reader(file)
         for row in reader:
             starting_url = row[0]
             prefix = urlparse(starting_url).scheme + "://" + urlparse(starting_url).netloc
             print(f"Starting crawl at: {starting_url}")
-            crawl(starting_url, prefix, max_depth)
+            crawl(starting_url, prefix, max_depth, visited)
 
 # Example usage
 if __name__ == "__main__":

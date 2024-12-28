@@ -1,61 +1,118 @@
-# Web Crawler for Extracting Visible Text and Checking Spelling
+Here's a sample README file for your project. You can copy this into a `README.md` file in your project folder:
 
-This Python script is designed to crawl web pages, extract the visible text displayed on the frontend, and check for spelling mistakes in the extracted text. It can be useful for various purposes such as web content analysis, spell checking, or quality assurance testing.
+```markdown
+# Web Screenshot Crawler
+
+This project is designed to crawl specified URLs, capture full-page screenshots, and store them in a designated directory. It uses Selenium for rendering pages and capturing screenshots, requests for extracting URLs from web pages, and BeautifulSoup for parsing HTML content.
 
 ## Features
+- Crawl websites starting from a set of initial URLs.
+- Extract valid URLs from pages, ensuring the domain matches the allowed domain and specific patterns are not skipped.
+- Capture full-page screenshots using Selenium in mobile viewports.
+- Automatically handle scrolling to capture screenshots of long pages.
+- Configurable allowed domain, starting URLs, and skip patterns via a CSV config file.
 
-- Extracts visible text from web pages.
-- Checks spelling mistakes in the extracted text.
-- Handles relative and absolute URLs.
-- Limits the depth of crawling to prevent infinite loops.
-- Detects and reports broken URLs.
+## Requirements
 
-## Dependencies
-
-The following dependencies are required to run the script:
-
-- requests
+- Python 3.x
+- Selenium
 - BeautifulSoup4
-- pyspellchecker
+- Requests
+- ChromeDriver (or equivalent for your browser)
+- Optional: Headless browser for running in environments without display servers.
 
-You can install these dependencies using pip:
+### Installing Dependencies
 
-pip install requests beautifulsoup4 pyspellchecker
+To install the required Python packages, use pip:
 
+```bash
+pip install selenium beautifulsoup4 requests
+```
 
-## Usage
+You will also need to install [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/) or the appropriate WebDriver for your browser.
 
-1. Clone the repository or download the Python script (`web_crawler.py`) to your local machine.
+### Setting Up ChromeDriver
 
-2. Ensure you have Python installed on your system. The script is compatible with Python 3.
+1. **Download ChromeDriver** from the official site: [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/)
+2. Make sure to download the correct version that matches your installed Chrome browser version.
+3. Add the ChromeDriver to your system's `PATH`, or specify the path directly in your script.
 
-3. Create a CSV file (`urls.csv`) containing the starting URLs you want to crawl. Each URL should be on a separate line.
+## Configuration
 
-4. Adjust the `MAX_DEPTH` and `MAX_REQUESTS` variables in the script according to your requirements. `MAX_DEPTH` specifies the maximum depth of crawling, and `MAX_REQUESTS` specifies the maximum number of requests allowed.
+The configuration file `config.csv` should be set up with the following structure:
 
-5. Run the script by executing the following command in your terminal or command prompt:
+```csv
+key,value
+allowed_domain,dexvil.com
+starting_url,https://www.dexvil.com/
+skip_exact,/download
+skip_substring,login
+```
 
-6. The script will start crawling the web pages, extracting visible text, checking for spelling mistakes, and reporting broken URLs.
+- **allowed_domain**: The domain to limit URL crawling to.
+- **starting_url**: The initial URLs to start crawling from.
+- **skip_exact**: URLs to skip if they match exactly.
+- **skip_substring**: URLs containing these substrings will be skipped.
 
-## Example
+### Example config.csv
 
-Suppose you want to crawl a website `example.com`:
+```csv
+key,value
+allowed_domain,dexvil.com
+starting_url,https://www.dexvil.com/
+skip_exact,/download
+skip_substring,login
+```
 
-1. Create a CSV file `urls.csv` with the following content:
+### Mobile View Configuration
 
-2. Run the script, and it will start crawling the website, extracting visible text, and checking for spelling mistakes.
+The script simulates mobile browsing using the latest standard mobile screen sizes. The current setup simulates a mobile viewport with a size of 375 x 812 pixels, which matches many modern smartphones (e.g., iPhone X, iPhone 12).
 
-## Limitations
+## Running the Script
 
-- The script extracts visible text only. It may not capture dynamically loaded content or text embedded within JavaScript.
+1. Ensure that the `config.csv` file is configured properly with valid URLs and domains.
+2. Run the script by executing the following:
 
-- The spell checker may not catch all spelling mistakes, especially for words with unusual capitalization or formatting.
+```bash
+python screenshot_crawler.py
+```
 
-- Crawling large websites may consume significant resources and time. Use caution when setting the `MAX_DEPTH` and `MAX_REQUESTS` parameters.
+The script will:
 
-## Contributions
+1. Load the configuration from `config.csv`.
+2. Start crawling the URLs defined in `starting_url`.
+3. Extract all valid links from the crawled pages.
+4. Capture full-page screenshots (scrolling to capture long pages).
+5. Save the screenshots in the `screenshots` directory.
 
-Contributions to the project are welcome! Feel free to fork the repository, make improvements, and submit pull requests.
+## Directory Structure
 
-If you encounter any issues or have suggestions for improvement, please open an issue on GitHub.
+```plaintext
+.
+├── screenshot_crawler.py         # Main script to crawl and capture screenshots
+├── config.csv                    # Configuration file for the crawler
+├── screenshots/                  # Folder where screenshots will be saved
+└── README.md                     # Project documentation
+```
 
+## Notes
+
+- **Max Depth**: The script crawls up to `MAX_DEPTH` levels from the starting URL. This helps limit the depth of the crawl.
+- **Mobile Viewport**: Screenshots are taken using a simulated mobile viewport of 375x812 px. This allows the screenshots to resemble what users would see on modern smartphones.
+- **Parallel Processing**: The script uses multithreading to process URLs concurrently, speeding up the crawling process.
+
+## Troubleshooting
+
+- **Missing Config File**: Ensure that the `config.csv` file is present and correctly formatted.
+- **Chromedriver Issues**: Ensure that ChromeDriver is installed and properly configured on your system.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+For any issues or contributions, please feel free to open an issue or pull request in this repository.
+```
+
+This README provides an overview of your project, explains how to set it up, run it, and troubleshoot issues. You can modify and expand it based on the specific needs of your project.

@@ -1,3 +1,7 @@
 key,value
-allowed_domain,dexvil.com
-starting_url,https://www.dexvil.com/
+allowed_domain,devircsapp.azurewebsites.net
+starting_url,https://devircsapp.azurewebsites.net/
+skip_exact,https://devircsapp.azurewebsites.net/contact
+skip_exact,https://devircsapp.azurewebsites.net/about
+skip_substring,/login
+skip_substring,/register

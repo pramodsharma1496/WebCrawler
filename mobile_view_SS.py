@@ -108,6 +108,10 @@ def should_skip_url(url):
     if url.endswith('/download'):
         print(f"Skipping URL (/download): {url}")
         return True
+    if url.endswith('.pdf'):  # Skip URLs ending with .pdf
+        print(f"Skipping URL (.pdf file): {url}")
+        return True
+
     if any(pattern in url for pattern in SKIP_PATTERNS_SUBSTRING):
         print(f"Skipping URL (substring match): {url}")
         return True

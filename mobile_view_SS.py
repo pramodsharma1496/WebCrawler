@@ -5,6 +5,9 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.webdriver import WebDriver
 import csv
 import time
 
@@ -13,6 +16,15 @@ MAX_WORKERS = 5
 MAX_DEPTH = 2
 OUTPUT_DIR = "./screenshots"
 CONFIG_FILE = "config.csv"  # External config file
+
+# Device Metrics for Android and iOS devices
+DEVICE_METRICS = {
+    "iPhone_13": {"width": 390, "height": 844, "deviceScaleFactor": 3, "mobile": True},
+    "Galaxy_S10": {"width": 412, "height": 915, "deviceScaleFactor": 3, "mobile": True},
+    "iPhone_X": {"width": 375, "height": 812, "deviceScaleFactor": 3, "mobile": True},
+    "Pixel_4": {"width": 412, "height": 869, "deviceScaleFactor": 3, "mobile": True},
+    "iPhone_12": {"width": 390, "height": 844, "deviceScaleFactor": 3, "mobile": True},
+}
 
 # Global variables loaded from config
 ALLOWED_DOMAIN = None
@@ -42,21 +54,30 @@ def load_config():
         print(f"Error: Config file '{CONFIG_FILE}' not found.")
         exit(1)
 
-# Function to set up a headless mobile Chrome driver
-def setup_driver():
-    """Sets up a headless Chrome driver for mobile view."""
+# Function to set up a headless mobile Chrome driver for a specific device
+def setup_driver(device="iPhone_13") -> WebDriver:
+    """Sets up a headless Chrome driver for a specific mobile view."""
+    device_metrics = DEVICE_METRICS.get(device, DEVICE_METRICS["Pixel_4"])  # Default to iPhone 13 if device not found
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=375,667")  # Mobile screen size (width x height)
-    options.add_argument("user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/537.36")  # Mobile User-Agent
-    return webdriver.Chrome(options=options)
+    options.add_argument(f"--window-size={device_metrics['width']},{device_metrics['height']}")  # Device screen size
+    options.add_argument(f"user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/537.36")  # Mobile User-Agent
+    # Use DevTools Protocol to simulate mobile devices
+    driver = webdriver.Chrome(options=options)
+    driver.execute_cdp_cmd('Emulation.setDeviceMetricsOverride', {
+        'width': device_metrics['width'],
+        'height': device_metrics['height'],
+        'deviceScaleFactor': device_metrics['deviceScaleFactor'],
+        'mobile': device_metrics['mobile'],
+    })
+    return driver
 
 # Function to capture screenshots of a URL with scrolling in mobile view
 def capture_screenshots_with_scroll(url, output_dir):
     """Captures screenshots of the full page with scrolling in mobile view."""
     try:
-        driver = setup_driver()
+        driver = setup_driver("iPhone_13")  # Set device here
         driver.get(url)
         time.sleep(3)  # Allow the page to load fully
 
@@ -69,16 +90,15 @@ def capture_screenshots_with_scroll(url, output_dir):
         part = 1
 
         while current_scroll < scroll_height:
-            driver.set_window_size(375, 812)  # Mobile screen size
             screenshot_filename = os.path.join(output_dir, f"{page_title}_part{part}.png")
             driver.save_screenshot(screenshot_filename)
             print(f"Screenshot saved: {screenshot_filename}")
             part += 1
 
             # Scroll down
-            current_scroll += 667  # Scroll by full height of mobile screen
+            current_scroll += DEVICE_METRICS["iPhone_13"]['height']  # Scroll by the height of mobile screen
             driver.execute_script(f"window.scrollTo(0, {current_scroll});")
-            time.sleep(1)
+            time.sleep(2)
 
             scroll_height = driver.execute_script("return document.body.scrollHeight")
     except Exception as e:
@@ -153,6 +173,7 @@ def crawl(url, max_depth, visited, to_visit):
 # Main function to initiate crawling and screenshot capture
 def main():
     """Main function to initiate crawling and capture screenshots."""
+    start_time = time.time()  # Record start time
     load_config()
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -167,7 +188,10 @@ def main():
 
         executor.map(lambda url: capture_screenshots_with_scroll(url, OUTPUT_DIR), visited)
 
+    end_time = time.time()  # Record end time
+    execution_time = end_time - start_time
     print(f"Finished processing. Screenshots saved in {OUTPUT_DIR}.")
+    print(f"Total execution time: {execution_time:.2f} seconds.")  # Print execution time
 
 if __name__ == "__main__":
     main()

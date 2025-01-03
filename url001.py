@@ -2,6 +2,7 @@ import csv
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
+from concurrent.futures import ThreadPoolExecutor
 import time
 
 # Exact matches for skipping URLs
@@ -26,7 +27,7 @@ def extract_urls(url):
         print(f"Error fetching URL {url}: {e}")
         return []
 
-    soup = BeautifulSoup(response.content, 'html.parser')
+    soup = BeautifulSoup(response.content, 'lxml')  # Use lxml for faster parsing
     return [urljoin(url, link.get('href')) for link in soup.find_all('a', href=True)]
 
 # Function to fetch URLs from a sitemap.xml (for WordPress and similar websites)
@@ -49,8 +50,6 @@ def fetch_sitemap(url):
 def is_valid(url):
     try:
         response = requests.head(url, timeout=5, allow_redirects=True)
-        if response.status_code != 200:
-            response = requests.get(url, timeout=10)
         return response.status_code == 200
     except requests.RequestException:
         return False
@@ -116,19 +115,23 @@ def main(csv_file, max_depth):
     try:
         with open(csv_file, 'r') as file:
             reader = csv.reader(file)
-            for row in reader:
-                if not row:
-                    continue
-                starting_url = row[0].strip()
-                if starting_url not in visited and not should_skip_url(starting_url):
-                    if is_valid(starting_url):
-                        print(f"Starting crawl for: {starting_url}")
-                        # Get base URL from starting URL (for domain comparison)
-                        base_url = urlparse(starting_url).scheme + "://" + urlparse(starting_url).netloc
-                        broken_urls.extend(crawl(starting_url, max_depth, visited, base_url))
-                    else:
-                        print(f"Invalid starting URL: {starting_url}")
-                        broken_urls.append(starting_url)
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = []
+                for row in reader:
+                    if not row:
+                        continue
+                    starting_url = row[0].strip()
+                    if starting_url not in visited and not should_skip_url(starting_url):
+                        if is_valid(starting_url):
+                            print(f"Starting crawl for: {starting_url}")
+                            base_url = urlparse(starting_url).scheme + "://" + urlparse(starting_url).netloc
+                            future = executor.submit(crawl, starting_url, max_depth, visited, base_url)
+                            futures.append(future)
+                        else:
+                            print(f"Invalid starting URL: {starting_url}")
+                            broken_urls.append(starting_url)
+                for future in futures:
+                    broken_urls.extend(future.result())
     except FileNotFoundError:
         print(f"Error: The file '{csv_file}' was not found.")
         return

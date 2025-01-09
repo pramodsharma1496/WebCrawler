@@ -7,15 +7,15 @@ import time
 
 # Exact matches for skipping URLs
 SKIP_PATTERNS_SET = {
-    "https://www.eraktkosh.in/HISUtilities/dashboard/dashBoardACTION.cnt",
-    "https://www.linkedin.com/company/ircsnewdelhi/",
-    "/ircs@indianredcross.org"
+    # "https://www.eraktkosh.in/HISUtilities/dashboard/dashBoardACTION.cnt",
+    # "https://www.linkedin.com/company/ircsnewdelhi/",
+    # "/ircs@indianredcross.org"
 }
 
 # Substring patterns for skipping URLs
 SKIP_PATTERNS_SUBSTRING = [
-    "dashboard/dashBoardACTION.cnt",
-    "ircs@indianredcross.org"
+    # "dashboard/dashBoardACTION.cnt",
+    # "ircs@indianredcross.org"
 ]
 
 # Function to extract URLs from a given URL (for regular websites)

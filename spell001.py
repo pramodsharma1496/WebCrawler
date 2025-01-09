@@ -57,5 +57,5 @@ def main(csv_file, max_depth):
 # Example usage
 if __name__ == "__main__":
     csv_file = "urls.csv"  # CSV file containing starting URLs
-    max_depth = 2  # Maximum depth of crawling
+    max_depth = 3  # Maximum depth of crawling
     main(csv_file, max_depth)

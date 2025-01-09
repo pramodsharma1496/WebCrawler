@@ -1,21 +1,17 @@
-import csv
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 from concurrent.futures import ThreadPoolExecutor
-import time
+import csv
 
 # Exact matches for skipping URLs
 SKIP_PATTERNS_SET = {
-    # "https://www.eraktkosh.in/HISUtilities/dashboard/dashBoardACTION.cnt",
-    # "https://www.linkedin.com/company/ircsnewdelhi/",
-    # "/ircs@indianredcross.org"
+    # Add any URLs that should be skipped exactly
 }
 
 # Substring patterns for skipping URLs
 SKIP_PATTERNS_SUBSTRING = [
-    # "dashboard/dashBoardACTION.cnt",
-    # "ircs@indianredcross.org"
+    # Add any substring patterns for skipping URLs
 ]
 
 # Function to extract URLs from a given URL (for regular websites)
@@ -36,7 +32,6 @@ def fetch_sitemap(url):
     try:
         response = requests.get(sitemap_url, timeout=10)
         response.raise_for_status()
-        # Using lxml as the parser
         soup = BeautifulSoup(response.content, "lxml-xml")
         return [loc.text for loc in soup.find_all("loc")]
     except requests.RequestException as e:
@@ -50,16 +45,37 @@ def fetch_sitemap(url):
 def is_valid(url):
     try:
         response = requests.head(url, timeout=5, allow_redirects=True)
-        return response.status_code == 200
-    except requests.RequestException:
+        return handle_status_code(response.status_code, url)
+    except requests.RequestException as e:
+        print(f"Request exception for URL {url}: {e}")
         return False
+
+# Function to handle different HTTP status codes
+def handle_status_code(status_code, url):
+    if status_code == 200:
+        return True
+    elif status_code == 404:
+        print(f"URL not found (404): {url}")
+    elif status_code == 403:
+        print(f"Forbidden (403): {url}")
+    elif status_code == 401:
+        print(f"Unauthorized (401): {url}")
+    elif status_code == 500:
+        print(f"Internal Server Error (500): {url}")
+    elif status_code == 502:
+        print(f"Bad Gateway (502): {url}")
+    elif status_code == 503:
+        print(f"Service Unavailable (503): {url}")
+    elif status_code == 504:
+        print(f"Gateway Timeout (504): {url}")
+    else:
+        print(f"Unhandled status code {status_code} for URL: {url}")
+    return False
 
 # Function to check if a URL should be skipped
 def should_skip_url(url):
-    # Check for exact matches
     if url in SKIP_PATTERNS_SET:
         return True
-    # Check for substring matches
     return any(pattern in url for pattern in SKIP_PATTERNS_SUBSTRING)
 
 # Function to check if the URL belongs to the same domain as the starting URL
@@ -83,24 +99,22 @@ def crawl(url, max_depth, visited, base_url, current_depth=0, broken_urls=None):
         print(f"Skipping URL outside of base domain: {url}")
         return broken_urls
 
-    if "wordpress" in url.lower():  # Check if it's a WordPress site
+    if "wordpress" in url.lower():
         sitemap_urls = fetch_sitemap(url)
         for sitemap_url in sitemap_urls:
             if sitemap_url not in visited and not should_skip_url(sitemap_url):
                 if not is_valid(sitemap_url):
-                    print(f"Broken URL detected: {sitemap_url}")
                     broken_urls.append(sitemap_url)
                 else:
                     crawl(sitemap_url, max_depth, visited, base_url, current_depth + 1, broken_urls)
     else:
         child_urls = extract_urls(url)
         for next_url in child_urls:
-            next_url = next_url.split('#')[0]  # Remove fragment identifier
+            next_url = next_url.split('#')[0]
             parsed_url = urlparse(next_url)
             if next_url.startswith(f"{parsed_url.scheme}://{parsed_url.netloc}") and not should_skip_url(next_url):
                 if next_url not in visited and is_same_domain(next_url, base_url):
                     if not is_valid(next_url):
-                        print(f"Broken URL detected: {next_url}")
                         broken_urls.append(next_url)
                     else:
                         crawl(next_url, max_depth, visited, base_url, current_depth + 1, broken_urls)
@@ -128,7 +142,6 @@ def main(csv_file, max_depth):
                             future = executor.submit(crawl, starting_url, max_depth, visited, base_url)
                             futures.append(future)
                         else:
-                            print(f"Invalid starting URL: {starting_url}")
                             broken_urls.append(starting_url)
                 for future in futures:
                     broken_urls.extend(future.result())
@@ -142,6 +155,6 @@ def main(csv_file, max_depth):
 
 # Example usage
 if __name__ == "__main__":
-    csv_file = "urls.csv"  # Path to the CSV file with URLs
-    max_depth = 3          # Maximum depth for crawling
+    csv_file = "urls.csv"
+    max_depth = 3
     main(csv_file, max_depth)

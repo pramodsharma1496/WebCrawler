@@ -2,15 +2,22 @@ import csv
 import requests
 from bs4 import BeautifulSoup
 from spellchecker import SpellChecker
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
+
 
 # Function to extract URLs and text from a given URL
 def extract_urls_and_text(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
-    urls = [link.get('href') for link in soup.find_all('a', href=True)]
+
+    # Find all 'a' tags with href attributes
+    urls = [urljoin(url, link.get('href')) for link in soup.find_all('a', href=True)]
+
+    # Extract visible text from the page
     text = soup.get_text(separator=' ', strip=True)
+
     return urls, text
+
 
 # Function to check spelling mistakes in text, skipping short words and alphanumerics
 def spell_check(text):
@@ -20,6 +27,7 @@ def spell_check(text):
     filtered_words = [word for word in words if len(word) > 3 and word.isalpha()]
     misspelled = spell.unknown(filtered_words)
     return misspelled
+
 
 # Function to crawl and extract URLs and text recursively
 def crawl(url, prefix, max_depth, visited, current_depth=0):
@@ -39,11 +47,12 @@ def crawl(url, prefix, max_depth, visited, current_depth=0):
         print(f"Spelling mistakes at URL: {url} - {misspelled}")
 
     for next_url in urls:
-        # Only follow URLs that start with the same prefix
+        # Only follow URLs that start with the same prefix (same domain)
         if next_url.startswith(prefix):
             crawl(next_url, prefix, max_depth, visited, current_depth + 1)
 
-# Main function
+
+# Main function to read CSV file and start crawling
 def main(csv_file, max_depth):
     visited = set()  # Set to track visited URLs
     with open(csv_file, 'r') as file:
@@ -53,6 +62,7 @@ def main(csv_file, max_depth):
             prefix = urlparse(starting_url).scheme + "://" + urlparse(starting_url).netloc
             print(f"Starting crawl at: {starting_url}")
             crawl(starting_url, prefix, max_depth, visited)
+
 
 # Example usage
 if __name__ == "__main__":
